@@ -24,11 +24,10 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 
-	"k8s.io/sample-apiserver/pkg/apis/wardle"
-	"k8s.io/sample-apiserver/pkg/apis/wardle/install"
-	wardleregistry "k8s.io/sample-apiserver/pkg/registry"
-	fischerstorage "k8s.io/sample-apiserver/pkg/registry/wardle/fischer"
-	flunderstorage "k8s.io/sample-apiserver/pkg/registry/wardle/flunder"
+	"k8s.toms.place/apiserver/pkg/apis/cdn"
+	cdninstall "k8s.toms.place/apiserver/pkg/apis/cdn/install"
+	registry "k8s.toms.place/apiserver/pkg/registry"
+	filestorage "k8s.toms.place/apiserver/pkg/registry/cdn/file"
 )
 
 var (
@@ -36,12 +35,12 @@ var (
 	Scheme = runtime.NewScheme()
 	// Codecs provides methods for retrieving codecs and serializers for specific
 	// versions and content types.
-	Codecs              = serializer.NewCodecFactory(Scheme)
-	WardleComponentName = "wardle"
+	Codecs           = serializer.NewCodecFactory(Scheme)
+	CDNComponentName = "cdn"
 )
 
 func init() {
-	install.Install(Scheme)
+	cdninstall.Install(Scheme)
 
 	// we need to add the options to empty v1
 	// TODO fix the server code to avoid this
@@ -60,7 +59,9 @@ func init() {
 
 // ExtraConfig holds custom apiserver config
 type ExtraConfig struct {
-	// Place you custom config here.
+	// ExternalHost is the host used to construct URLs for file content endpoints.
+	// If empty, the request's Host header will be used.
+	ExternalHost string
 }
 
 // Config defines the config for the apiserver
@@ -69,8 +70,8 @@ type Config struct {
 	ExtraConfig   ExtraConfig
 }
 
-// WardleServer contains state for a Kubernetes cluster master/api server.
-type WardleServer struct {
+// Server contains state for a Kubernetes cluster master/api server.
+type Server struct {
 	GenericAPIServer *genericapiserver.GenericAPIServer
 }
 
@@ -94,29 +95,27 @@ func (cfg *Config) Complete() CompletedConfig {
 	return CompletedConfig{&c}
 }
 
-// New returns a new instance of WardleServer from the given config.
-func (c completedConfig) New() (*WardleServer, error) {
-	genericServer, err := c.GenericConfig.New("sample-apiserver", genericapiserver.NewEmptyDelegate())
+// New returns a new instance of Server from the given config.
+func (c completedConfig) New() (*Server, error) {
+	genericServer, err := c.GenericConfig.New("apiserver", genericapiserver.NewEmptyDelegate())
 	if err != nil {
 		return nil, err
 	}
 
-	s := &WardleServer{
+	s := &Server{
 		GenericAPIServer: genericServer,
 	}
 
-	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(wardle.GroupName, Scheme, metav1.ParameterCodec, Codecs)
+	// Install CDN API group
+	cdnAPIGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(cdn.GroupName, Scheme, metav1.ParameterCodec, Codecs)
 
-	v1alpha1storage := map[string]rest.Storage{}
-	v1alpha1storage["flunders"] = wardleregistry.RESTInPeace(flunderstorage.NewREST(Scheme, c.GenericConfig.RESTOptionsGetter))
-	v1alpha1storage["fischers"] = wardleregistry.RESTInPeace(fischerstorage.NewREST(Scheme, c.GenericConfig.RESTOptionsGetter))
-	apiGroupInfo.VersionedResourcesStorageMap["v1alpha1"] = v1alpha1storage
+	fileStorage := registry.RESTInPeace(filestorage.NewREST(Scheme, c.GenericConfig.RESTOptionsGetter))
+	cdnV1alpha1storage := map[string]rest.Storage{}
+	cdnV1alpha1storage["files"] = fileStorage
+	cdnV1alpha1storage["files/content"] = filestorage.NewContentREST(fileStorage, c.ExtraConfig.ExternalHost)
+	cdnAPIGroupInfo.VersionedResourcesStorageMap["v1alpha1"] = cdnV1alpha1storage
 
-	v1beta1storage := map[string]rest.Storage{}
-	v1beta1storage["flunders"] = wardleregistry.RESTInPeace(flunderstorage.NewREST(Scheme, c.GenericConfig.RESTOptionsGetter))
-	apiGroupInfo.VersionedResourcesStorageMap["v1beta1"] = v1beta1storage
-
-	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
+	if err := s.GenericAPIServer.InstallAPIGroup(&cdnAPIGroupInfo); err != nil {
 		return nil, err
 	}
 

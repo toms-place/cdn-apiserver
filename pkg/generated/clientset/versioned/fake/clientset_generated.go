@@ -25,12 +25,10 @@ import (
 	"k8s.io/client-go/discovery"
 	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/testing"
-	applyconfiguration "k8s.io/sample-apiserver/pkg/generated/applyconfiguration"
-	clientset "k8s.io/sample-apiserver/pkg/generated/clientset/versioned"
-	wardlev1alpha1 "k8s.io/sample-apiserver/pkg/generated/clientset/versioned/typed/wardle/v1alpha1"
-	fakewardlev1alpha1 "k8s.io/sample-apiserver/pkg/generated/clientset/versioned/typed/wardle/v1alpha1/fake"
-	wardlev1beta1 "k8s.io/sample-apiserver/pkg/generated/clientset/versioned/typed/wardle/v1beta1"
-	fakewardlev1beta1 "k8s.io/sample-apiserver/pkg/generated/clientset/versioned/typed/wardle/v1beta1/fake"
+	applyconfiguration "k8s.toms.place/apiserver/pkg/generated/applyconfiguration"
+	clientset "k8s.toms.place/apiserver/pkg/generated/clientset/versioned"
+	cdnv1alpha1 "k8s.toms.place/apiserver/pkg/generated/clientset/versioned/typed/cdn/v1alpha1"
+	fakecdnv1alpha1 "k8s.toms.place/apiserver/pkg/generated/clientset/versioned/typed/cdn/v1alpha1/fake"
 )
 
 // NewSimpleClientset returns a clientset that will respond with the provided objects.
@@ -138,12 +136,7 @@ var (
 	_ testing.FakeClient  = &Clientset{}
 )
 
-// WardleV1alpha1 retrieves the WardleV1alpha1Client
-func (c *Clientset) WardleV1alpha1() wardlev1alpha1.WardleV1alpha1Interface {
-	return &fakewardlev1alpha1.FakeWardleV1alpha1{Fake: &c.Fake}
-}
-
-// WardleV1beta1 retrieves the WardleV1beta1Client
-func (c *Clientset) WardleV1beta1() wardlev1beta1.WardleV1beta1Interface {
-	return &fakewardlev1beta1.FakeWardleV1beta1{Fake: &c.Fake}
+// CdnV1alpha1 retrieves the CdnV1alpha1Client
+func (c *Clientset) CdnV1alpha1() cdnv1alpha1.CdnV1alpha1Interface {
+	return &fakecdnv1alpha1.FakeCdnV1alpha1{Fake: &c.Fake}
 }

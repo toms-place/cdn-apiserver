@@ -22,30 +22,22 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	managedfields "k8s.io/apimachinery/pkg/util/managedfields"
-	v1alpha1 "k8s.io/sample-apiserver/pkg/apis/wardle/v1alpha1"
-	v1beta1 "k8s.io/sample-apiserver/pkg/apis/wardle/v1beta1"
-	internal "k8s.io/sample-apiserver/pkg/generated/applyconfiguration/internal"
-	wardlev1alpha1 "k8s.io/sample-apiserver/pkg/generated/applyconfiguration/wardle/v1alpha1"
-	wardlev1beta1 "k8s.io/sample-apiserver/pkg/generated/applyconfiguration/wardle/v1beta1"
+	v1alpha1 "k8s.toms.place/apiserver/pkg/apis/cdn/v1alpha1"
+	cdnv1alpha1 "k8s.toms.place/apiserver/pkg/generated/applyconfiguration/cdn/v1alpha1"
+	internal "k8s.toms.place/apiserver/pkg/generated/applyconfiguration/internal"
 )
 
 // ForKind returns an apply configuration type for the given GroupVersionKind, or nil if no
 // apply configuration type exists for the given GroupVersionKind.
 func ForKind(kind schema.GroupVersionKind) interface{} {
 	switch kind {
-	// Group=wardle.example.com, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithKind("Fischer"):
-		return &wardlev1alpha1.FischerApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("Flunder"):
-		return &wardlev1alpha1.FlunderApplyConfiguration{}
-	case v1alpha1.SchemeGroupVersion.WithKind("FlunderSpec"):
-		return &wardlev1alpha1.FlunderSpecApplyConfiguration{}
-
-		// Group=wardle.example.com, Version=v1beta1
-	case v1beta1.SchemeGroupVersion.WithKind("Flunder"):
-		return &wardlev1beta1.FlunderApplyConfiguration{}
-	case v1beta1.SchemeGroupVersion.WithKind("FlunderSpec"):
-		return &wardlev1beta1.FlunderSpecApplyConfiguration{}
+	// Group=cdn.k8s.toms.place, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithKind("File"):
+		return &cdnv1alpha1.FileApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("FileSpec"):
+		return &cdnv1alpha1.FileSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("FileStatus"):
+		return &cdnv1alpha1.FileStatusApplyConfiguration{}
 
 	}
 	return nil

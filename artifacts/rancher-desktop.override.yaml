@@ -1,0 +1,22 @@
+provision:
+  - mode: system
+    script: |
+      #!/bin/sh
+      mkdir -p /etc/kubernetes
+      cat <<'EOF' > /etc/kubernetes/auth-config.yaml
+      apiVersion: apiserver.config.k8s.io/v1
+      kind: AuthenticationConfiguration
+      anonymous:
+        enabled: true
+        # conditions:
+        # - path: /livez
+        # - path: /readyz
+        # - path: /healthz
+        # - path: /apis/cdn.k8s.toms.place/v1alpha1/files
+        # - path: /apis/cdn.k8s.toms.place/v1beta1/files
+        # - path: /apis/cdn.k8s.toms.place/v1/files
+        # - path: /apis/cdn.k8s.toms.place/v1alpha1/namespaces/default/files
+        # - path: /apis/cdn.k8s.toms.place/v1alpha1/namespaces/toms-place/files
+      EOF
+env:
+  K3S_EXEC: --kube-apiserver-arg="--authentication-config=/etc/kubernetes/auth-config.yaml"

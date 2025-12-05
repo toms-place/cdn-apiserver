@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-server
+  labels:
+    apiserver: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      apiserver: "true"
+  template:
+    metadata:
+      labels:
+        apiserver: "true"
+    spec:
+      serviceAccountName: apiserver
+      containers:
+        - name: api-server
+          image: k8s.toms.place/apiserver:test
+          imagePullPolicy: Never
+          args:
+            - "--external-host=localhost:6443"
+            - "--etcd-servers=http://localhost:2379"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+        - name: etcd
+          image: registry.k8s.io/etcd:v3.6.6
+          volumeMounts:
+            - name: etcd-data
+              mountPath: /var/lib/etcd
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+      volumes:
+        - name: etcd-data
+          persistentVolumeClaim:
+            claimName: etcd-data-pvc

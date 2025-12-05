@@ -1,0 +1,13 @@
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1alpha1.cdn.k8s.toms.place
+spec:
+  insecureSkipTLSVerify: true
+  group: cdn.k8s.toms.place
+  groupPriorityMinimum: 1000
+  versionPriority: 15
+  service:
+    name: api
+    namespace: toms-place
+  version: v1alpha1

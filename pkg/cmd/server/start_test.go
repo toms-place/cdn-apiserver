@@ -61,7 +61,7 @@ func TestWardleEmulationVersionToKubeEmulationVersion(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			mappedKubeEmulationVer := WardleVersionToKubeVersion(tc.wardleEmulationVer)
+			mappedKubeEmulationVer := VersionToKubeVersion(tc.wardleEmulationVer)
 			assert.True(t, mappedKubeEmulationVer.EqualTo(tc.expectedKubeEmulationVer))
 		})
 	}

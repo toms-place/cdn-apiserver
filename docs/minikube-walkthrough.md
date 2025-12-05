@@ -1,110 +1,261 @@
-# Minikube walkthrough
+# CDN API Server Walkthrough
 
-This document will take you through setting up and trying the sample apiserver on a local minikube from a fresh clone of this repo.
+This document will take you through setting up and trying the CDN API server on a local Kubernetes cluster (minikube, kind, or Rancher Desktop).
 
-## Pre requisites
+## Prerequisites
 
-- Go 1.7.x or later installed and setup. More information can be found at [go installation](https://go.dev/doc/install)
-- Dockerhub account to push the image to [Dockerhub](https://hub.docker.com/)
+- Go 1.25+ installed and setup. More information can be found at [Go installation](https://go.dev/doc/install)
+- A local Kubernetes cluster:
+  - [minikube](https://minikube.sigs.k8s.io/docs/start/)
+  - [kind](https://kind.sigs.k8s.io/docs/user/quick-start/)
+  - [Rancher Desktop](https://rancherdesktop.io/)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) installed
+- Docker or containerd for building images
 
-## Install Minikube
+## Clone the Repository
 
-Minikube is a single node Kubernetes cluster that runs on your local machine. The Minikube docs have installation instructions for your OS.
-- [minikube installation](https://github.com/kubernetes/minikube#installation)
-
-
-## Clone the repository
-
-In order to build the sample apiserver image we will need to build the apiserver binary.
-
-```
-cd $GOPATH/src
-mkdir -p k8s.io
-cd k8s.io
+```bash
 git clone https://github.com/kubernetes/sample-apiserver.git
+cd sample-apiserver
 ```
 
-## Build the binary
+## Option 1: Quick Start with Tilt (Recommended)
 
-Next we will want to create a new binary to both test we can build the server and to use for the container image.
+If you have [Tilt](https://tilt.dev/) installed, the fastest way to get started is:
 
-From the root of this repo, where ```main.go``` is located, run the following command:
-```
-export GOOS=linux; go build .
-```
-if everything went well, you should have a binary called ```sample-apiserver``` present in your current directory.
-
-## Build the container image
-
-Using the binary we just built, we will now create a Docker image and push it to our Dockerhub registry so that we deploy it to our cluster.
-There is a sample ```Dockerfile``` located in ```artifacts/simple-image``` we will use this to build our own image.
-
-Again from the root of this repo run the following commands:
-```
-cp ./sample-apiserver ./artifacts/simple-image/kube-sample-apiserver
-docker build -t <YOUR_DOCKERHUB_USER>/kube-sample-apiserver:latest ./artifacts/simple-image
-docker push <YOUR_DOCKERHUB_USER>/kube-sample-apiserver
+```bash
+tilt up
 ```
 
-## Modify the replication controller
+This will automatically:
 
-You need to modify the [artifacts/example/deployment.yaml](/artifacts/example/deployment.yaml) file to change the ```imagePullPolicy``` to ```Always``` or ```IfNotPresent```.
+- Generate the API code
+- Build the container image
+- Deploy all resources to your cluster
+- Watch for changes and rebuild automatically
 
-You also need to change the image from ```kube-sample-apiserver:latest``` to ```<YOUR_DOCKERHUB_USER>/kube-sample-apiserver:latest```. For example:
+Skip to [Test the CDN API](#test-the-cdn-api) section.
+
+## Option 2: Manual Setup
+
+### Generate API Code
+
+First, run the code generation scripts to generate clients, informers, and listers:
+
+```bash
+./hack/update-codegen.sh
+```
+
+### Build the Binary
+
+From the root of the repo, build the API server binary:
+
+```bash
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o artifacts/simple-image/kube-sample-apiserver .
+```
+
+If everything went well, you should have a binary in `artifacts/simple-image/kube-sample-apiserver`.
+
+### Build the Container Image
+
+Build and push the Docker image:
+
+```bash
+docker build -t <YOUR_REGISTRY>/cdn-apiserver:latest ./artifacts/simple-image
+docker push <YOUR_REGISTRY>/cdn-apiserver:latest
+```
+
+For local development with minikube, you can load the image directly:
+
+```bash
+# For minikube
+eval $(minikube docker-env)
+docker build -t k8s.toms.place/apiserver:test ./artifacts/simple-image
+
+# For kind
+kind load docker-image k8s.toms.place/apiserver:test
+```
+
+### Update the Deployment (if using custom registry)
+
+If you pushed to a custom registry, update the image in `artifacts/example/apiserver/deployment.yaml`:
 
 ```yaml
-...
-      containers:
-      - name: wardle-server
-        image: <YOUR_DOCKERHUB_USER>/kube-sample-apiserver:latest
-        imagePullPolicy: Always
-...
+containers:
+  - name: api-server
+    image: <YOUR_REGISTRY>/cdn-apiserver:latest
+    imagePullPolicy: Always # Change from Never if pulling from registry
 ```
 
-Save this file and we are then ready to deploy and try out the sample apiserver.
+### Deploy to Kubernetes
 
-## Deploy to Minikube
+Deploy all resources using kustomize:
 
-We will need to create several objects in order to setup the sample apiserver so you will need to ensure you have the ```kubectl``` tool installed. [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
-
-```
-# create the namespace to run the apiserver in
-kubectl create ns wardle
-
-# create the service account used to run the server
-kubectl create -f artifacts/example/sa.yaml -n wardle
-
-# create the rolebindings that allow the service account user to delegate authz back to the kubernetes master for incoming requests to the apiserver
-kubectl create -f artifacts/example/auth-delegator.yaml -n kube-system
-kubectl create -f artifacts/example/auth-reader.yaml -n kube-system
-
-# create rbac roles and clusterrolebinding that allow the service account user to use admission webhooks
-kubectl create -f artifacts/example/rbac.yaml
-kubectl create -f artifacts/example/rbac-bind.yaml
-
-# create the service and replication controller
-kubectl create -f artifacts/example/deployment.yaml -n wardle
-kubectl create -f artifacts/example/service.yaml -n wardle
-
-# create the apiservice object that tells kubernetes about your api extension and where in the cluster the server is located
-kubectl create -f artifacts/example/apiservice.yaml
+```bash
+kubectl apply -k artifacts/example
 ```
 
-## Test that your setup has worked
+This will create:
 
-You should now be able to create the resource type ```Flunder``` which is the resource type registered by the sample apiserver.
+- Namespace `toms-place`
+- ServiceAccount and RBAC rules
+- Deployment with the API server and etcd sidecar
+- Service for the API server
+- APIService registration for `cdn.k8s.toms.place/v1alpha1`
 
+Verify the deployment:
+
+```bash
+# Check the namespace was created
+kubectl get ns toms-place
+
+# Check the pods are running
+kubectl get pods -n toms-place
+
+# Check the APIService is available
+kubectl get apiservice v1alpha1.cdn.k8s.toms.place
 ```
-kubectl create -f artifacts/flunders/01-flunder.yaml
-# outputs flunder "my-first-flunder" created
+
+Wait until the API server pod is running and the APIService shows `Available: True`.
+
+## Test the CDN API
+
+### Create a File Resource
+
+The CDN API server registers the `File` resource type under `cdn.k8s.toms.place/v1alpha1`.
+
+Create your first File resource:
+
+```bash
+kubectl apply -f artifacts/test-resources/file.yaml
 ```
 
-You can then get this resource by running:
+Or create one directly:
 
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: cdn.k8s.toms.place/v1alpha1
+kind: File
+metadata:
+  name: my-first-file.txt
+  namespace: default
+spec:
+  url: https://example.com/my-first-file.txt
+  size: 1024
+  contentType: text/plain
+EOF
 ```
-kubectl get flunder my-first-flunder
 
-#outputs
-# NAME               KIND
-# my-first-flunder   Flunder.v1alpha1.wardle.example.com
+### List Files
+
+```bash
+# List files in default namespace
+kubectl get files
+
+# List files in all namespaces
+kubectl get files -A
+
+# Get detailed output
+kubectl get files -o wide
+```
+
+### Get File Details
+
+```bash
+kubectl get file my-first-file -o yaml
+```
+
+Expected output:
+
+```yaml
+apiVersion: cdn.k8s.toms.place/v1alpha1
+kind: File
+metadata:
+  name: my-first-file.txt
+  namespace: default
+spec:
+  url: https://example.com/my-first-file.txt
+  size: 1024
+  contentType: text/plain
+status:
+  uploaded: false
+  error: ""
+```
+
+### Delete a File
+
+```bash
+kubectl delete file my-first-file
+```
+
+## Using the kubectl Plugin
+
+For a better CLI experience, install the kubectl-cdn plugin:
+
+```bash
+cd plugin/kubectl-cdn
+go build -o kubectl-cdn .
+cp kubectl-cdn /usr/local/bin/
+```
+
+Then use it:
+
+```bash
+# List files
+kubectl cdn list
+
+# Upload a local file
+kubectl cdn upload /path/to/local/file.txt my-uploaded-file
+
+# Get file details
+kubectl cdn get my-uploaded-file
+```
+
+See [plugin/kubectl-cdn/README.md](../plugin/kubectl-cdn/README.md) for full usage.
+
+## Cleanup
+
+To remove all deployed resources:
+
+```bash
+kubectl delete -k artifacts/example
+```
+
+## Troubleshooting
+
+### APIService shows Available: False
+
+Check the API server logs:
+
+```bash
+kubectl logs -n toms-place -l apiserver=true
+```
+
+Common issues:
+
+- etcd not ready - wait for the etcd container to start
+- Image pull errors - verify the image exists and is accessible
+
+### Cannot create File resources
+
+Verify the APIService is registered and available:
+
+```bash
+kubectl get apiservice v1alpha1.cdn.k8s.toms.place -o yaml
+```
+
+Check that the service is reachable:
+
+```bash
+kubectl get svc -n toms-place
+kubectl get endpoints -n toms-place
+```
+
+### Permission denied errors
+
+Ensure RBAC is properly configured:
+
+```bash
+kubectl get clusterrolebinding | grep apiserver
+kubectl get rolebinding -n kube-system | grep auth
 ```

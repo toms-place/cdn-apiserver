@@ -21,13 +21,13 @@ import (
 
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/component-base/cli"
-	"k8s.io/sample-apiserver/pkg/cmd/server"
+	"k8s.toms.place/apiserver/pkg/cmd/server"
 )
 
 func main() {
 	ctx := genericapiserver.SetupSignalContext()
-	options := server.NewWardleServerOptions(os.Stdout, os.Stderr)
-	cmd := server.NewCommandStartWardleServer(ctx, options, false)
+	options := server.NewServerOptions(os.Stdout, os.Stderr)
+	cmd := server.NewCommandStartServer(ctx, options, false)
 	code := cli.Run(cmd)
 	os.Exit(code)
 }

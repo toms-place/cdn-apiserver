@@ -38,20 +38,19 @@ import (
 	basecompatibility "k8s.io/component-base/compatibility"
 	"k8s.io/component-base/featuregate"
 	baseversion "k8s.io/component-base/version"
-	"k8s.io/sample-apiserver/pkg/admission/plugin/banflunder"
-	"k8s.io/sample-apiserver/pkg/admission/wardleinitializer"
-	"k8s.io/sample-apiserver/pkg/apis/wardle/v1alpha1"
-	"k8s.io/sample-apiserver/pkg/apiserver"
-	clientset "k8s.io/sample-apiserver/pkg/generated/clientset/versioned"
-	informers "k8s.io/sample-apiserver/pkg/generated/informers/externalversions"
-	sampleopenapi "k8s.io/sample-apiserver/pkg/generated/openapi"
 	netutils "k8s.io/utils/net"
+	initializer "k8s.toms.place/apiserver/pkg/admission/initializer"
+	cdnv1alpha1 "k8s.toms.place/apiserver/pkg/apis/cdn/v1alpha1"
+	"k8s.toms.place/apiserver/pkg/apiserver"
+	clientset "k8s.toms.place/apiserver/pkg/generated/clientset/versioned"
+	informers "k8s.toms.place/apiserver/pkg/generated/informers/externalversions"
+	sampleopenapi "k8s.toms.place/apiserver/pkg/generated/openapi"
 )
 
-const defaultEtcdPathPrefix = "/registry/wardle.example.com"
+const defaultEtcdPathPrefix = "/registry/k8s.toms.place"
 
-// WardleServerOptions contains state for master/api server
-type WardleServerOptions struct {
+// ServerOptions contains state for master/api server
+type ServerOptions struct {
 	RecommendedOptions *genericoptions.RecommendedOptions
 	// ComponentGlobalsRegistry is the registry where the effective versions and feature gates for all components are stored.
 	ComponentGlobalsRegistry basecompatibility.ComponentGlobalsRegistry
@@ -61,9 +60,13 @@ type WardleServerOptions struct {
 	StdErr                io.Writer
 
 	AlternateDNS []string
+
+	// ExternalHost is the host used to construct URLs for file content endpoints.
+	// If empty, the request's Host header will be used.
+	ExternalHost string
 }
 
-func WardleVersionToKubeVersion(ver *version.Version) *version.Version {
+func VersionToKubeVersion(ver *version.Version) *version.Version {
 	if ver.Major() != 1 {
 		return nil
 	}
@@ -77,29 +80,34 @@ func WardleVersionToKubeVersion(ver *version.Version) *version.Version {
 	return mappedVer
 }
 
-// NewWardleServerOptions returns a new WardleServerOptions
-func NewWardleServerOptions(out, errOut io.Writer) *WardleServerOptions {
-	o := &WardleServerOptions{
+// NewServerOptions returns a new ServerOptions
+func NewServerOptions(out, errOut io.Writer) *ServerOptions {
+	o := &ServerOptions{
 		RecommendedOptions: genericoptions.NewRecommendedOptions(
 			defaultEtcdPathPrefix,
-			apiserver.Codecs.LegacyCodec(v1alpha1.SchemeGroupVersion),
+			// LegacyCodec uses the scheme's version priority for each group
+			apiserver.Codecs.LegacyCodec(cdnv1alpha1.SchemeGroupVersion, cdnv1alpha1.SchemeGroupVersion),
 		),
 		ComponentGlobalsRegistry: compatibility.DefaultComponentGlobalsRegistry,
 
 		StdOut: out,
 		StdErr: errOut,
 	}
-	o.RecommendedOptions.Etcd.StorageConfig.EncodeVersioner = runtime.NewMultiGroupVersioner(v1alpha1.SchemeGroupVersion, schema.GroupKind{Group: v1alpha1.GroupName})
+	// EncodeVersioner handles multiple groups - each group gets its preferred storage version
+	o.RecommendedOptions.Etcd.StorageConfig.EncodeVersioner = runtime.NewMultiGroupVersioner(
+		cdnv1alpha1.SchemeGroupVersion,                 // default target for cdn group
+		schema.GroupKind{Group: cdnv1alpha1.GroupName}, // cdn.k8s.toms.place
+	)
 	return o
 }
 
-// NewCommandStartWardleServer provides a CLI handler for 'start master' command
-// with a default WardleServerOptions.
-func NewCommandStartWardleServer(ctx context.Context, defaults *WardleServerOptions, skipDefaultComponentGlobalsRegistrySet bool) *cobra.Command {
+// NewCommandStartServer provides a CLI handler for 'start master' command
+// with a default ServerOptions.
+func NewCommandStartServer(ctx context.Context, defaults *ServerOptions, skipDefaultComponentGlobalsRegistrySet bool) *cobra.Command {
 	o := *defaults
 	cmd := &cobra.Command{
-		Short: "Launch a wardle API server",
-		Long:  "Launch a wardle API server",
+		Short: "Launch toms.place API server",
+		Long:  "Launch toms.place API server",
 		PersistentPreRunE: func(*cobra.Command, []string) error {
 			if skipDefaultComponentGlobalsRegistrySet {
 				return nil
@@ -113,7 +121,7 @@ func NewCommandStartWardleServer(ctx context.Context, defaults *WardleServerOpti
 			if err := o.Validate(args); err != nil {
 				return err
 			}
-			if err := o.RunWardleServer(c.Context()); err != nil {
+			if err := o.RunServer(c.Context()); err != nil {
 				return err
 			}
 			return nil
@@ -123,6 +131,7 @@ func NewCommandStartWardleServer(ctx context.Context, defaults *WardleServerOpti
 
 	flags := cmd.Flags()
 	o.RecommendedOptions.AddFlags(flags)
+	flags.StringVar(&o.ExternalHost, "external-host", "", "External host (host:port) used to construct URLs for file content endpoints. If empty, uses the request's Host header.")
 
 	// The following lines demonstrate how to configure version compatibility and feature gates
 	// for the "Wardle" component, as an example of KEP-4330.
@@ -136,17 +145,17 @@ func NewCommandStartWardleServer(ctx context.Context, defaults *WardleServerOpti
 	// - The minimum compatibility version specifies the minimum version that the component remains compatible with.
 	//
 	// Refer to KEP-4330 for more details: https://github.com/kubernetes/enhancements/blob/master/keps/sig-architecture/4330-compatibility-versions
-	defaultWardleVersion := "1.2"
+	defaultVersion := "1.2"
 	// Register the "Wardle" component with the global component registry,
 	// associating it with its effective version and feature gate configuration.
 	// Will skip if the component has been registered, like in the integration test.
-	_, wardleFeatureGate := defaults.ComponentGlobalsRegistry.ComponentGlobalsOrRegister(
-		apiserver.WardleComponentName, basecompatibility.NewEffectiveVersionFromString(defaultWardleVersion, "", ""),
-		featuregate.NewVersionedFeatureGate(version.MustParse(defaultWardleVersion)))
+	_, FeatureGate := defaults.ComponentGlobalsRegistry.ComponentGlobalsOrRegister(
+		apiserver.CDNComponentName, basecompatibility.NewEffectiveVersionFromString(defaultVersion, "", ""),
+		featuregate.NewVersionedFeatureGate(version.MustParse(defaultVersion)))
 
 	// Add versioned feature specifications for the "BanFlunder" feature.
 	// These specifications, together with the effective version, determine if the feature is enabled.
-	utilruntime.Must(wardleFeatureGate.AddVersioned(map[featuregate.Feature]featuregate.VersionedSpecs{
+	utilruntime.Must(FeatureGate.AddVersioned(map[featuregate.Feature]featuregate.VersionedSpecs{
 		"BanFlunder": {
 			{Version: version.MustParse("1.0"), Default: false, PreRelease: featuregate.Alpha},
 			{Version: version.MustParse("1.1"), Default: true, PreRelease: featuregate.Beta},
@@ -158,17 +167,17 @@ func NewCommandStartWardleServer(ctx context.Context, defaults *WardleServerOpti
 	_, _ = defaults.ComponentGlobalsRegistry.ComponentGlobalsOrRegister(basecompatibility.DefaultKubeComponent,
 		basecompatibility.NewEffectiveVersionFromString(baseversion.DefaultKubeBinaryVersion, "", ""), utilfeature.DefaultMutableFeatureGate)
 
-	// Set the emulation version mapping from the "Wardle" component to the kube component.
+	// Set the emulation version mapping from the "CDN" component to the kube component.
 	// This ensures that the emulation version of the latter is determined by the emulation version of the former.
-	utilruntime.Must(defaults.ComponentGlobalsRegistry.SetVersionMapping(apiserver.WardleComponentName, basecompatibility.DefaultKubeComponent, WardleVersionToKubeVersion))
+	utilruntime.Must(defaults.ComponentGlobalsRegistry.SetVersionMapping(apiserver.CDNComponentName, basecompatibility.DefaultKubeComponent, VersionToKubeVersion))
 
 	defaults.ComponentGlobalsRegistry.AddFlags(flags)
 
 	return cmd
 }
 
-// Validate validates WardleServerOptions
-func (o WardleServerOptions) Validate(args []string) error {
+// Validate validates ServerOptions
+func (o ServerOptions) Validate(args []string) error {
 	errors := []error{}
 	errors = append(errors, o.RecommendedOptions.Validate()...)
 	errors = append(errors, o.ComponentGlobalsRegistry.Validate()...)
@@ -176,19 +185,19 @@ func (o WardleServerOptions) Validate(args []string) error {
 }
 
 // Complete fills in fields required to have valid data
-func (o *WardleServerOptions) Complete() error {
-	if o.ComponentGlobalsRegistry.FeatureGateFor(apiserver.WardleComponentName).Enabled("BanFlunder") {
-		// register admission plugins
-		banflunder.Register(o.RecommendedOptions.Admission.Plugins)
+func (o *ServerOptions) Complete() error {
+	// if o.ComponentGlobalsRegistry.FeatureGateFor(apiserver.WardleComponentName).Enabled("BanFlunder") {
+	// 	// register admission plugins
+	// 	banflunder.Register(o.RecommendedOptions.Admission.Plugins)
 
-		// add admission plugins to the RecommendedPluginOrder
-		o.RecommendedOptions.Admission.RecommendedPluginOrder = append(o.RecommendedOptions.Admission.RecommendedPluginOrder, "BanFlunder")
-	}
+	// 	// add admission plugins to the RecommendedPluginOrder
+	// 	o.RecommendedOptions.Admission.RecommendedPluginOrder = append(o.RecommendedOptions.Admission.RecommendedPluginOrder, "BanFlunder")
+	// }
 	return nil
 }
 
-// Config returns config for the api server given WardleServerOptions
-func (o *WardleServerOptions) Config() (*apiserver.Config, error) {
+// Config returns config for the api server given ServerOptions
+func (o *ServerOptions) Config() (*apiserver.Config, error) {
 	// TODO have a "real" external address
 	if err := o.RecommendedOptions.SecureServing.MaybeDefaultWithSelfSignedCerts("localhost", o.AlternateDNS, []net.IP{netutils.ParseIPSloppy("127.0.0.1")}); err != nil {
 		return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
@@ -201,21 +210,21 @@ func (o *WardleServerOptions) Config() (*apiserver.Config, error) {
 		}
 		informerFactory := informers.NewSharedInformerFactory(client, c.LoopbackClientConfig.Timeout)
 		o.SharedInformerFactory = informerFactory
-		return []admission.PluginInitializer{wardleinitializer.New(informerFactory)}, nil
+		return []admission.PluginInitializer{initializer.New(informerFactory)}, nil
 	}
 
 	serverConfig := genericapiserver.NewRecommendedConfig(apiserver.Codecs)
 
 	serverConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(sampleopenapi.GetOpenAPIDefinitions, openapi.NewDefinitionNamer(apiserver.Scheme))
-	serverConfig.OpenAPIConfig.Info.Title = "Wardle"
+	serverConfig.OpenAPIConfig.Info.Title = "Toms Place API"
 	serverConfig.OpenAPIConfig.Info.Version = "0.1"
 
 	serverConfig.OpenAPIV3Config = genericapiserver.DefaultOpenAPIV3Config(sampleopenapi.GetOpenAPIDefinitions, openapi.NewDefinitionNamer(apiserver.Scheme))
-	serverConfig.OpenAPIV3Config.Info.Title = "Wardle"
+	serverConfig.OpenAPIV3Config.Info.Title = "Toms Place API"
 	serverConfig.OpenAPIV3Config.Info.Version = "0.1"
 
 	serverConfig.FeatureGate = o.ComponentGlobalsRegistry.FeatureGateFor(basecompatibility.DefaultKubeComponent)
-	serverConfig.EffectiveVersion = o.ComponentGlobalsRegistry.EffectiveVersionFor(apiserver.WardleComponentName)
+	serverConfig.EffectiveVersion = o.ComponentGlobalsRegistry.EffectiveVersionFor(apiserver.CDNComponentName)
 
 	if err := o.RecommendedOptions.ApplyTo(serverConfig); err != nil {
 		return nil, err
@@ -223,13 +232,15 @@ func (o *WardleServerOptions) Config() (*apiserver.Config, error) {
 
 	config := &apiserver.Config{
 		GenericConfig: serverConfig,
-		ExtraConfig:   apiserver.ExtraConfig{},
+		ExtraConfig: apiserver.ExtraConfig{
+			ExternalHost: o.ExternalHost,
+		},
 	}
 	return config, nil
 }
 
-// RunWardleServer starts a new WardleServer given WardleServerOptions
-func (o WardleServerOptions) RunWardleServer(ctx context.Context) error {
+// RunServer starts a new Server given ServerOptions
+func (o ServerOptions) RunServer(ctx context.Context) error {
 	config, err := o.Config()
 	if err != nil {
 		return err

@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - apiserver
+  - system
+  - rbac.yaml
+
+replacements:
+  - source:
+      kind: Namespace
+      name: toms-place
+    targets:
+      - select:
+          kind: RoleBinding
+          name: auth-reader
+          namespace: kube-system
+        fieldPaths:
+          - subjects.[name=apiserver].namespace

@@ -1,0 +1,9 @@
+apiVersion: cdn.k8s.toms.place/v1alpha1
+kind: File
+metadata:
+  name: my-first-file
+  labels:
+    test: "true"
+spec:
+  url: https://toms.place
+  size: 64

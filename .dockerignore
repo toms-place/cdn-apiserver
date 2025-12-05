@@ -1,0 +1,11 @@
+.git
+.github
+.vscode
+*.log
+Tiltfile
+
+plugin
+hack
+docs
+artifacts
+app

@@ -28,8 +28,7 @@ import (
 	version "k8s.io/apimachinery/pkg/version"
 	common "k8s.io/kube-openapi/pkg/common"
 	spec "k8s.io/kube-openapi/pkg/validation/spec"
-	v1alpha1 "k8s.io/sample-apiserver/pkg/apis/wardle/v1alpha1"
-	v1beta1 "k8s.io/sample-apiserver/pkg/apis/wardle/v1beta1"
+	v1alpha1 "k8s.toms.place/apiserver/pkg/apis/cdn/v1alpha1"
 )
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
@@ -88,16 +87,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		runtime.TypeMeta{}.OpenAPIModelName():             schema_k8sio_apimachinery_pkg_runtime_TypeMeta(ref),
 		runtime.Unknown{}.OpenAPIModelName():              schema_k8sio_apimachinery_pkg_runtime_Unknown(ref),
 		version.Info{}.OpenAPIModelName():                 schema_k8sio_apimachinery_pkg_version_Info(ref),
-		v1alpha1.Fischer{}.OpenAPIModelName():             schema_pkg_apis_wardle_v1alpha1_Fischer(ref),
-		v1alpha1.FischerList{}.OpenAPIModelName():         schema_pkg_apis_wardle_v1alpha1_FischerList(ref),
-		v1alpha1.Flunder{}.OpenAPIModelName():             schema_pkg_apis_wardle_v1alpha1_Flunder(ref),
-		v1alpha1.FlunderList{}.OpenAPIModelName():         schema_pkg_apis_wardle_v1alpha1_FlunderList(ref),
-		v1alpha1.FlunderSpec{}.OpenAPIModelName():         schema_pkg_apis_wardle_v1alpha1_FlunderSpec(ref),
-		v1alpha1.FlunderStatus{}.OpenAPIModelName():       schema_pkg_apis_wardle_v1alpha1_FlunderStatus(ref),
-		v1beta1.Flunder{}.OpenAPIModelName():              schema_pkg_apis_wardle_v1beta1_Flunder(ref),
-		v1beta1.FlunderList{}.OpenAPIModelName():          schema_pkg_apis_wardle_v1beta1_FlunderList(ref),
-		v1beta1.FlunderSpec{}.OpenAPIModelName():          schema_pkg_apis_wardle_v1beta1_FlunderSpec(ref),
-		v1beta1.FlunderStatus{}.OpenAPIModelName():        schema_pkg_apis_wardle_v1beta1_FlunderStatus(ref),
+		v1alpha1.File{}.OpenAPIModelName():                schema_pkg_apis_cdn_v1alpha1_File(ref),
+		v1alpha1.FileContent{}.OpenAPIModelName():         schema_pkg_apis_cdn_v1alpha1_FileContent(ref),
+		v1alpha1.FileList{}.OpenAPIModelName():            schema_pkg_apis_cdn_v1alpha1_FileList(ref),
+		v1alpha1.FileSpec{}.OpenAPIModelName():            schema_pkg_apis_cdn_v1alpha1_FileSpec(ref),
+		v1alpha1.FileStatus{}.OpenAPIModelName():          schema_pkg_apis_cdn_v1alpha1_FileStatus(ref),
 	}
 }
 
@@ -2767,110 +2761,7 @@ func schema_k8sio_apimachinery_pkg_version_Info(ref common.ReferenceCallback) co
 	}
 }
 
-func schema_pkg_apis_wardle_v1alpha1_Fischer(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1.ObjectMeta{}.OpenAPIModelName()),
-						},
-					},
-					"disallowedFlunders": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-list-type": "atomic",
-							},
-						},
-						SchemaProps: spec.SchemaProps{
-							Description: "DisallowedFlunders holds a list of Flunder.Names that are disallowed.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: "",
-										Type:    []string{"string"},
-										Format:  "",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			v1.ObjectMeta{}.OpenAPIModelName()},
-	}
-}
-
-func schema_pkg_apis_wardle_v1alpha1_FischerList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "FischerList is a list of Fischer objects.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1.ListMeta{}.OpenAPIModelName()),
-						},
-					},
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref(v1alpha1.Fischer{}.OpenAPIModelName()),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			v1.ListMeta{}.OpenAPIModelName(), v1alpha1.Fischer{}.OpenAPIModelName()},
-	}
-}
-
-func schema_pkg_apis_wardle_v1alpha1_Flunder(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_cdn_v1alpha1_File(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2899,28 +2790,63 @@ func schema_pkg_apis_wardle_v1alpha1_Flunder(ref common.ReferenceCallback) commo
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.FlunderSpec{}.OpenAPIModelName()),
+							Ref:     ref(v1alpha1.FileSpec{}.OpenAPIModelName()),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref(v1alpha1.FlunderStatus{}.OpenAPIModelName()),
+							Ref:     ref(v1alpha1.FileStatus{}.OpenAPIModelName()),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			v1.ObjectMeta{}.OpenAPIModelName(), v1alpha1.FlunderSpec{}.OpenAPIModelName(), v1alpha1.FlunderStatus{}.OpenAPIModelName()},
+			v1.ObjectMeta{}.OpenAPIModelName(), v1alpha1.FileSpec{}.OpenAPIModelName(), v1alpha1.FileStatus{}.OpenAPIModelName()},
 	}
 }
 
-func schema_pkg_apis_wardle_v1alpha1_FlunderList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_cdn_v1alpha1_FileContent(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "FlunderList is a list of Flunder objects.",
+				Description: "FileContent is the content subresource for a File",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref(v1.Status{}.OpenAPIModelName()),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			v1.Status{}.OpenAPIModelName()},
+	}
+}
+
+func schema_pkg_apis_cdn_v1alpha1_FileList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "FileList is a list of File objects.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -2950,7 +2876,7 @@ func schema_pkg_apis_wardle_v1alpha1_FlunderList(ref common.ReferenceCallback) c
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref(v1alpha1.Flunder{}.OpenAPIModelName()),
+										Ref:     ref(v1alpha1.File{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -2961,26 +2887,41 @@ func schema_pkg_apis_wardle_v1alpha1_FlunderList(ref common.ReferenceCallback) c
 			},
 		},
 		Dependencies: []string{
-			v1.ListMeta{}.OpenAPIModelName(), v1alpha1.Flunder{}.OpenAPIModelName()},
+			v1.ListMeta{}.OpenAPIModelName(), v1alpha1.File{}.OpenAPIModelName()},
 	}
 }
 
-func schema_pkg_apis_wardle_v1alpha1_FlunderSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_cdn_v1alpha1_FileSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "FileSpec is the specification of a File.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"reference": {
+					"url": {
 						SchemaProps: spec.SchemaProps{
-							Description: "A name of another flunder or fischer, depending on the reference type.",
+							Description: "URL is the URL of the file.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
-					"referenceType": {
+					"size": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The reference type, defaults to \"Flunder\" if reference is set.",
+							Description: "Size is the size of the file in bytes.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"contentType": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ContentType is the MIME type of the file.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"resourceLocation": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Add a resource location for the content",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -2991,152 +2932,28 @@ func schema_pkg_apis_wardle_v1alpha1_FlunderSpec(ref common.ReferenceCallback) c
 	}
 }
 
-func schema_pkg_apis_wardle_v1alpha1_FlunderStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_cdn_v1alpha1_FileStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-			},
-		},
-	}
-}
-
-func schema_pkg_apis_wardle_v1beta1_Flunder(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "Flunder is an example type with a spec and a status.",
+				Description: "FileStatus is the status of a File.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"kind": {
+					"uploaded": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
+							Description: "Uploaded is true if the file has been uploaded.",
+							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
-					"apiVersion": {
+					"error": {
 						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1.ObjectMeta{}.OpenAPIModelName()),
-						},
-					},
-					"spec": {
-						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1beta1.FlunderSpec{}.OpenAPIModelName()),
-						},
-					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1beta1.FlunderStatus{}.OpenAPIModelName()),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			v1.ObjectMeta{}.OpenAPIModelName(), v1beta1.FlunderSpec{}.OpenAPIModelName(), v1beta1.FlunderStatus{}.OpenAPIModelName()},
-	}
-}
-
-func schema_pkg_apis_wardle_v1beta1_FlunderList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "FlunderList is a list of Flunder objects.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
-							Ref:     ref(v1.ListMeta{}.OpenAPIModelName()),
-						},
-					},
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref(v1beta1.Flunder{}.OpenAPIModelName()),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			v1.ListMeta{}.OpenAPIModelName(), v1beta1.Flunder{}.OpenAPIModelName()},
-	}
-}
-
-func schema_pkg_apis_wardle_v1beta1_FlunderSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "FlunderSpec is the specification of a Flunder.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"flunderReference": {
-						SchemaProps: spec.SchemaProps{
-							Description: "A name of another flunder, mutually exclusive to the FischerReference.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"fischerReference": {
-						SchemaProps: spec.SchemaProps{
-							Description: "A name of a fischer, mutually exclusive to the FlunderReference.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"referenceType": {
-						SchemaProps: spec.SchemaProps{
-							Description: "The reference type.",
+							Description: "Error is an error message if the file upload failed.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
-			},
-		},
-	}
-}
-
-func schema_pkg_apis_wardle_v1beta1_FlunderStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "FlunderStatus is the status of a Flunder.",
-				Type:        []string{"object"},
 			},
 		},
 	}

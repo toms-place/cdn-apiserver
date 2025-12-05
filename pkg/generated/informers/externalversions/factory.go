@@ -27,9 +27,9 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
-	versioned "k8s.io/sample-apiserver/pkg/generated/clientset/versioned"
-	internalinterfaces "k8s.io/sample-apiserver/pkg/generated/informers/externalversions/internalinterfaces"
-	wardle "k8s.io/sample-apiserver/pkg/generated/informers/externalversions/wardle"
+	versioned "k8s.toms.place/apiserver/pkg/generated/clientset/versioned"
+	cdn "k8s.toms.place/apiserver/pkg/generated/informers/externalversions/cdn"
+	internalinterfaces "k8s.toms.place/apiserver/pkg/generated/informers/externalversions/internalinterfaces"
 )
 
 // SharedInformerOption defines the functional option type for SharedInformerFactory.
@@ -255,9 +255,9 @@ type SharedInformerFactory interface {
 	// client.
 	InformerFor(obj runtime.Object, newFunc internalinterfaces.NewInformerFunc) cache.SharedIndexInformer
 
-	Wardle() wardle.Interface
+	Cdn() cdn.Interface
 }
 
-func (f *sharedInformerFactory) Wardle() wardle.Interface {
-	return wardle.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) Cdn() cdn.Interface {
+	return cdn.New(f, f.namespace, f.tweakListOptions)
 }
