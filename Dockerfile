@@ -1,7 +1,9 @@
-FROM golang:1.25-alpine as builder
+FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS builder
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /app
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o apiserver main.go
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -a -o apiserver main.go
 
 FROM alpine:latest
 WORKDIR /app
