@@ -18,7 +18,6 @@ local_resource(
 load('ext://nerdctl', 'nerdctl_build')
 nerdctl_build(
     ref='k8s.toms.place/apiserver',
-    context='.',
-    dockerfile='./Dockerfile.dev'
+    context='.'
 )
 k8s_yaml(kustomize('artifacts/example'))
